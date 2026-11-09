@@ -521,6 +521,12 @@ extern "C" {
 #define HAG_REG_DMA_PG_RANGE_IM3    0x2D        /* Image 3 page count */
 #define HAG_REG_DMA_PG_RANGE_GL     0x2E        /* GL table page count */
 #define HAG_REG_DMA_PG_RANGE_DL     0x2F        /* Display list page count */
+/* Seen on IP28 6.5.22: a ~400 KB glReadPixels through image pool 1 with
+ * DMA_PG_RANGE_IM1 = 2 and MAX_IM1_PTR_OFFSET = 4, table entries 0..3
+ * filled and 4 on zero, LINE_CNT 256 lines of 1542 bytes, ROW_START
+ * advancing by 0x608 between transfers (0x500, 0xB08, 0x110). So the
+ * kernel maps a window of pages; past it the HAG must take a graphics TLB
+ * miss (flag bit 7) for the kernel to refill. Not yet traced on a board. */
 #define HAG_REG_MAX_IM1_PTR_OFFSET  0x30        /* Max pointer offset table 1 */
 #define HAG_REG_MAX_IM2_PTR_OFFSET  0x31        /* Max pointer offset table 2 */
 #define HAG_REG_MAX_IM3_PTR_OFFSET  0x32        /* Max pointer offset table 3 */

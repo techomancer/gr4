@@ -470,6 +470,22 @@ extern "C" {
 
 /*
  * ============================================================================
+ * GE MEMORY IN A FRESH CONTEXT (real High IMPACT, GE11 rev B, IP28 6.5.22)
+ * ============================================================================
+ *
+ * test/gltest/gepeek ge:0-0xFFF from a new GL context, twice. 749 words
+ * nonzero and the same both times, 135 different (the previous context's
+ * leftovers: the matrices 0x032..0x08D, 0x1CF..0x1D6, 0x200..0x204):
+ *   0x000..0x031  pairs like 0x00484004 0x000FFFFF: RSS register commands
+ *                 and their data, not GL state
+ *   0x200..0x241  [value, RSS register] pairs, odd words 0x113..0x169
+ *                 (0x23A = 7 next to 0x166, 0x23C = 0xFFFF next to 0x167):
+ *                 the GL state words glGet reads are the value halves
+ *   0x1D0..0x1D6  the colour-index copy's mask state: leftovers, no default
+ *   0xDBB 4, 0xDBE 2, 0xDBF 0x3F, 0xDC0 0xFFF: the same every time
+ *   0x2B8, 0x2BC 1.0; 0x2BD..0x2C0 0x01780178; 0x2C1 / 0x2C2 -/+0.99769
+ *
+ * ============================================================================
  * STATE READBACK: WHERE glGet* FINDS EACH PIECE OF GL STATE
  * ============================================================================
  *
@@ -546,7 +562,9 @@ extern "C" {
  *                (compare functions: 0x200 + index, NEVER..ALWAYS)
  *   0x29F        colour write mask bits 0-3 R G B A (index mask in CI)
  *   0x2A0        error word
- *   0x2BF        raster distance (eye space); 0x2C4 raster w;
+ *   0x2BF        raster distance: the raster vertex's eye-space z, not
+ *                divided by w (-0.5 for a point 0.5 in front of the eye;
+ *                a real High IMPACT, test/gltest/rdist.c); 0x2C4 raster w;
  *   0x2C5-0x2C8  raster colour (as glRasterPos latched it);
  *   0x2C9-0x2CC  raster texture coordinates; 0x2CD-0x2CF raster x, y
  *                (+49151.5), z; 0x2D0 valid (bit 2)

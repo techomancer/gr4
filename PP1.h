@@ -285,6 +285,26 @@ extern "C" {
 #define PP1_BLEND_ONE_MINUS_CONST_ALP 0xC
 
 /*
+ * Subtract blends on a real High IMPACT (IP28, 6.5.22, blendtest -a, one
+ * cell a legal GL factor pair; ADD, MIN, MAX and the logic ops all follow
+ * GL). In GL terms:
+ *   SUBTRACT drops the destination term when the source factor is an alpha
+ *   or constant one (SRC_ALPHA, DST_ALPHA, CONSTANT_COLOR, CONSTANT_ALPHA,
+ *   their ONE_MINUS forms, SRC_ALPHA_SATURATE) and the destination factor
+ *   is ONE_MINUS of a different one of those (SATURATE: also against
+ *   ONE_MINUS_SRC_COLOR). SRC_ALPHA / ONE_MINUS_SRC_ALPHA and the colour
+ *   factors are fine.
+ *   REVERSE_SUBTRACT with source factor ONE_MINUS_{SRC_ALPHA, DST_ALPHA,
+ *   CONSTANT_COLOR, CONSTANT_ALPHA} uses the factor without the ONE_MINUS
+ *   and drops the destination term under the same conflict or for
+ *   SRC_COLOR; ONE_MINUS_DST_COLOR as source factor drops it for SRC_COLOR
+ *   and the alpha / constant factors.
+ *   309 of 312 cells; REVERSE_SUBTRACT with an inverted source factor over
+ *   SRC_COLOR matches no factor pair. How the GE programs the equation
+ *   into this register is not known (iris writes its own encoding).
+ */
+
+/*
  * ============================================================================
  * STENCIL & DEPTH TESTS (PP1_REG_STENCIL_MODE, PP1_REG_Z_MODE)
  *

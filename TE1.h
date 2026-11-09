@@ -231,6 +231,46 @@ extern "C" {
  *   TXBCOLOR_RG / TXBCOLOR_BA: border colour, 12 bits each, laid out like
  *     the environment colour.
  *
+ *   Detail textures (SGIS_detail_texture), from dettex traces on 6.5.22:
+ *     TEXMODE2 bit 9    detail on (sent with bits 5, 6 and 19: the base
+ *                       must be mipmapped)
+ *     TEXMODE2 bit 10   detail image 128 x 128 (clear: 256 x 256); the
+ *                       driver declines other sizes
+ *     TXSIZE bits 18:16 6 + L, L = DETAIL_TEXTURE_LEVEL; L above -2 is sent
+ *                       as -2 (D = 4)
+ *     TXDETAIL 0x192    bits 7:0, TRAM page of the detail image
+ *     DETAILSCALE 0x194 a TXADDR-indexed table of 32 five-bit weights
+ *                       (31 = 31/32 on the board), entry k for
+ *                       LOD = log2(k / 32)
+ *     TXLOD bits 15:10  twice the last nonzero DETAILSCALE entry (0 when
+ *                       the table is all zero)
+ *   The detail image loads as a level twice as wide as high (TL_SPEC
+ *   0x890 for 256, 0x780 for 128) of which only the left half is written,
+ *   in the base texture's format. The driver builds the table from the
+ *   GL detail function by putting each point at k = round(32 2^lod) and
+ *   interpolating linearly in k (not in LOD), weights rounded to nearest
+ *   with halves down (0.5 gives 15), held past the last point. The
+ *   default table is 31 31 31 29 28 ... 2 1.
+ *   ADD, MODULATE and the COLOR / ALPHA filters all send the same
+ *   registers: the board has one detail operation on every component.
+ *   Quake's surfaces: TEXMODE2 0x907e4, TXSIZE 0x2xxxx, TXLOD 0xf80n,
+ *   TXDETAIL 0.
+ *   Measured on a real High IMPACT (IP28, 6.5.22; dettex --fill/--func,
+ *   test/gltest/dettexsweep.sh), not base + F (2 detail - 1):
+ *     out = base + w (detail' - 2185) / 32, in 12-bit units, the texels
+ *     widened to 12 bits by replication (16 d + d >> 4), rounded; w the
+ *     table blend at k = 32 2^lambda (8-bit fraction between entries).
+ *     Uniform base 64..192 against detail 0..255 and w 1..31: 161 of 165
+ *     points exact, the rest one level off. The zero sits at detail 136.6
+ *     of 255, the slope is half the extension's.
+ *     No detail from the TXLOD index on: entries 15 and 16 at 31 with
+ *     TXLOD 32 give full weight at k = 15.52, none at k = 16; TXLOD 62
+ *     gives full weight at k = 30.1, none at 31.0.
+ *     The detail coordinate is the level-0 one times 2^-L, no offset,
+ *     bilinear; components in order.
+ *     L = -2 (D = 4) is broken: vertical seams and a tear along the
+ *     quad's triangle edge, at any base size.
+ *
  *   Texture readback: GE token 0x0F0 [width, height, s offset, t offset
  *     (0.5, texel centres), transfer mode, 0x400D], then raster interface
  *     register 5 = 0x400D starts it (XFRCONTROL read | texture | DMA).
